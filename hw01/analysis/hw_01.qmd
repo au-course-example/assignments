@@ -1,0 +1,170 @@
+---
+title: "DATA-413/613 HW 01"
+author: "Your Name"
+date: today
+number-sections: true
+code-line-numbers: true
+code-overflow: wrap
+code-link: true
+format:
+  html:
+    toc-depth: 3
+    theme:
+      light: [cerulean, ../../scss_413.scss]
+      dark: [solar, ../../scss_413.scss]
+    reader-mode: true
+    embed-resources: true
+
+params:
+  solutions: true
+---
+
+```{r}
+#| lst-label: setup-01
+#| include: false
+knitr::opts_chunk$set(
+  echo = params$solutions,
+  eval = params$solutions,
+  include = params$solutions,
+  fig.align = "center",
+  fig.height = 5,
+  fig.width = 6.5
+)
+```
+
+# Specific Instructions {.unnumbered}
+
+1. Clone the assignment repo to your homework directory.
+
+-   Rename the starter.qmd file under the analysis directory as "hw01_your name.qmd" and use this file for your solutions.
+-   Edit the "author" field in the YAML header to use your full name.
+-   Review the provided assignment HTML file for detailed instructions, the rubric, and to see any images to be replicated.
+-   **Stage and commit your quarto (.qmd) file each time you answer a part of a question, e.g. 1.1.**
+-   **Render to HTML (no PDF or .docx) and push to GitHub after each main question, e.g., 1.0 or 2.0.** 
+
+**Committing and Pushing are major graded elements for this homework.**
+
+2.  After completion 
+
+- Follow the general instructions.
+- Once satisfied the assignment is complete, stage, commit, and push your repo to GitHub.
+
+3. After Assignment is complete and pushed to GitHub.
+
+- Go to the Canvas Assignment.
+- Click "Start Assignment." 
+- Enter the phrase: "Assignment is completed, rendered, pushed to GitHub and ready for evaluation." 
+- Click "Submit Assignment.
+
+Email me with any questions. **If you email, please ensure your most recent code is pushed to GitHub.** 
+
+If you would like to meet for office hours, please email me with proposed times to meet on Zoom *and your questions* and ensure your most recent code is pushed to GitHub before we meet. I may be able to answer before we meet.
+
+# Learning Outcomes: {.unnumbered}
+
+-   Operate with Git and GitHub.
+-   Apply concepts and methods from DATA-412/612 to real-world data including functions for data manipulation, plotting, statistical methods, and interpreting results.
+
+# Grading Criteria/Rubric {.unnumbered}
+
+::: table-striped
+| Question| Points | Topic                                                                                    |
+|----|---:|:---------------------------------|
+|1.1|1.00|Load data using a readr function and a relative path. Glimpse the data.|
+|1.2|.50|Identify character data that should be numeric and the reason why it's read in as character.|
+|1.3|1.00|Use a readr function to reload data with argument to adjust data to numeric.|
+|1.4a|1.50|Appropriate plot with smoother.|
+|...|...|...|
+| **Total**     | **40** | Plus possible extra credit                    |
+:::
+
+```{block}
+#| echo: false
+
+Instructor Note: 
+
+- Check for commit history in GitHub using Insights.
+- Can also check git log in individual repo for specific commits.
+```
+
+
+# Analysis Elements {.unnumbered}
+
+0. Load the {tidyverse} and use functions from {tidyverse} when appropriate.
+
+```{r}
+#| eval: true
+#| message: false
+library(tidyverse)
+library(here)
+```
+
+# College Scorecard
+
+The data folder contains `college_scorecard_extract_2025-11-17_413.csv`, a *subset* of data in the [College Scorecard](https://collegescorecard.ed.gov/data/) as of November 17, 2025. This data set contains information on undergraduate college cohorts in the United States. The data dictionary is in the `data` folder. The variables include:
+
+-   `ADM_RATE`: The Admission Rate
+-   `AGE_ENTRY`: Average age of entry
+-   `AVGFACSAL`: Average faculty salary per Month
+-   `CITY`: City
+-   `CONTROL`: Ownership-Public or Private: 1='Public Institution', 2='Private nonprofit Institution', 3='Private for-profit institution', -3='not available';
+- ...
+
+**1.**  Load the data.
+
+a.  Load `college_scorecard_extract_2025-11-17_413.csv` (in the `data` directory) *using one call to a {readr} function with a relative path* and save the resulting tibble.
+    -  Do not not suppress messages or warnings.
+
+b.  Use `glimpse()` to examine the data.
+
+```{r}
+#| label: read_college_data
+#| eval: true
+file_name <- "../data/college_scorecard_extract_2025-11-17_413.csv"
+read_csv(file_name) ->
+college_scores
+glimpse(college_scores)
+```
+
+**2.**  If you used the default settings for reading in the data, three variables are class character when the data suggests they should be numeric.
+
+a.  Identify the misidentified columns.\
+b.  **Look at the data that was imported**, at least the first 250 rows. Look at the help for `read_csv()`. Why did `read_csv()` interpret these columns as type character instead of double and not the rows with "NA" in them?
+
+```{block}
+::: {.text-solution}
+FEMALE, FIRST_GEN, GRAD_DEBT_MDN
+
+- `read_csv()` scanned the first `guess_max = 1000` rows of a column to determine the variable type. The presence of "PS", for Privacy Suppressed in one or more of the first 1000 rows of these columns caused the data to be deemed type character.
+However, the default for the `na=` argument of `read_csv()` handles the "NA" values.
+:::
+```
+
+**3.**  Reload the data with a {readr} function and *use an argument of that function* to convert all offending entries to `NA` so the variables are automatically read in as type double. The message from reading in the data should show 36 variables of class double.
+
+```{r}
+#| eval: true
+college_scores <-
+  read_csv(file_name, na = c(" ", "NA", "PS")
+  )
+glimpse(college_scores)
+```
+
+**4.**  How is average faculty salary associated with the admission rate? Create the plot per the steps in part a, then answer parts b, c, and d as text.
+
+a. Remove the `NA` values for just the variables of interest and use {ggplot2} to create a scatter plot to assess for a relationship (with `AVGFACSAL` as the explanatory X variable). 
+  - Use an argument of `geom_point()` to reduce over-plotting by decreasing opacity of the points. 
+  - Add the default smoother with `se = FALSE`. 
+  - Facet on `ICLEVEL`.
+
+```{r}
+#| label: fig-fac-salary-v-admrate
+#| fig-cap: Average faculty salary relationship with Admission Rate.
+#| fig-alt: Scatter plot of Average faculty salary on the Y axis and admission rate on the X axis.
+college_scores |>
+  filter(!is.na(AVGFACSAL), !is.na(ADM_RATE)) |>
+  ggplot(aes(x = ADM_RATE, y = AVGFACSAL)) +
+  geom_point(alpha = .2) +
+  geom_smooth(se = FALSE) +
+  facet_wrap(~ICLEVEL)
+```
